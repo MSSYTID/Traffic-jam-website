@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Uluwatu Road — Traffic Jam Awareness</title>
+<style>
+:root{
+  --accent:#0b74de;
+  --accent-2:#06b6a4;
+  --bg:#f4f8ff;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --text:#0f172a;
+  --radius:12px;
+  --glass: rgba(255,255,255,0.6);
+  font-family: Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,var(--bg),#eaf4ff);color:var(--text);padding:28px;display:flex;align-items:flex-start;justify-content:center;}
+.container{max-width:1100px;width:100%}
+
+/* header */
+.header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px;box-shadow:0 6px 18px rgba(11,116,222,0.14)}
+.header h1{margin:0;font-size:20px}
+.lead{margin:0;color:var(--muted);font-size:14px}
+
+/* layout */
+main{display:grid;grid-template-columns:1fr 360px;gap:20px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+
+/* cards */
+.card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+h2{margin:0 0 10px 0;color:var(--accent)}
+
+/* simulator */
+.road-visual{height:140px;border-radius:12px;background:linear-gradient(180deg,#eaf6ff,#ffffff);display:flex;align-items:center;justify-content:center;padding:12px;position:relative;overflow:hidden}
+.lane{width:92%;height:60px;background:#2b3440;border-radius:10px;position:relative;overflow:hidden}
+.car-dot{position:absolute;bottom:6px;width:18px;height:12px;border-radius:4px;background:var(--accent);box-shadow:0 4px 8px rgba(11,116,222,0.15);transition:left .25s linear}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font-weight:600;padding:8px 12px;border-radius:10px;border:none;background:var(--accent);color:white;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(11,116,222,0.12)}
+.status{padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#f7fdff);border:1px solid #e6f8ff}
+.muted{color:var(--muted);font-size:14px}
+
+/* lists */
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.facts{grid-template-columns:1fr}}
+.fact{padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid #eef8ff}
+
+/* ideas & reports */
+.ideas-list{max-height:200px;overflow:auto;padding:8px;border-radius:8px;border:1px solid #eef6ff;background:#ffffff}
+.idea{padding:8px;border-bottom:1px dashed #eef6ff}
+
+/* quiz */
+.quiz .option{display:block;margin:6px 0}
+
+/* footer */
+footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
+
+/* admin modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;z-index:9998}
+.admin-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;padding:18px;width:92%;max-width:800px;max-height:80%;overflow:auto;box-shadow:0 30px 80px rgba(2,6,23,0.25);display:none;z-index:9999}
+.admin-row{display:flex;gap:8px;align-items:center}
+.admin-list{border:1px solid #eee;padding:8px;border-radius:8px;margin-top:8px;max-height:260px;overflow:auto}
+.admin-actions{margin-top:12px}
+.small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">UJ</div>
+      <div>
+        <h1>Uluwatu Road — Traffic Jam Awareness</h1>
+        <p class="lead">Interactive demo: causes, solutions, tips, mini-quiz, and community feedback.</p>
+      </div>
+    </header>
+
+    <main>
+      <div>
+        <section class="card">
+          <h2>About Uluwatu Road</h2>
+          <p class="small">Uluwatu Road connects beaches, temples and tourist spots in southern Bali. High season sees many rental cars, scooters, shuttles and delivery vehicles sharing narrow roads which causes frequent jams.</p>
+          <div style="height:10px"></div>
+          <div class="facts">
+            <div class="fact"><strong>Landmarks</strong><div class="muted">Uluwatu Temple, Padang Padang, Suluban Beach — increase local traffic.</div></div>
+            <div class="fact"><strong>Tourism</strong><div class="muted">Weekend peaks and holiday surges double traffic volume.</div></div>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <h2>Traffic Flow Simulator</h2>
+          <p class="muted">Adjust vehicle count to see estimated speed and delay.</p>
+          <div class="road-visual" aria-hidden>
+            <div class="lane" id="lane"></div>
+          </div>
+          <div style="height:10px"></div>
+          <div class="controls">
+            <button id="addBtn">+ Add Cars</button>
+            <button id="reduceBtn" class="ghost">- Reduce Cars</button>
+            <button id="resetBtn" class="ghost">Reset</button>
+            <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="touristMode"> <span class="small">Tourist Mode</span></label>
+          </div>
+          <div style="height:10px"></div>
+          <div class="status">
+            <strong>Road condition: <span id="cond">Smooth</span></strong>
+            <div class="muted">Avg speed: <span id="speed">60</span> km/h • Delay: <span id="delay">0</span> min • Vehicles: <span id="count">6</span></div>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <h2>Causes & Problems</h2>
+          <ul>
+            <li>Narrow or winding road sections</li>
+            <li>Illegal roadside parking</li>
+            <li>High single-occupancy vehicles & rental scooters</li>
+            <li>Delivery vehicles during peak hours</li>
+            <li>Limited public transport</li>
+          </ul>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <h2>Solutions & Tips for Drivers</h2>
+          <ul>
+            <li>Use shuttle services and carpool</li>
+            <li>Park in designated areas; avoid illegal stops</li>
+            <li>Avoid sudden braking; keep steady speed</li>
+            <li>Plan trips outside peak hours</li>
+            <li>Support local rules for scheduled deliveries</li>
+          </ul>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <h2>Mini Quiz</h2>
+          <div class="quiz">
+            <p class="muted">Quick check — pick the best answers.</p>
+            <p><strong>1.</strong> What helps reduce congestion?</p>
+            <label class="option"><input type="radio" name="q1" value="shuttle"> Shuttle buses</label><br>
+            <label class="option"><input type="radio" name="q1" value="parking"> More roadside parking</label>
+
+            <p style="margin-top:8px"><strong>2.</strong> What causes lane reduction?</p>
+            <label class="option"><input type="radio" name="q2" value="illegal"> Illegal roadside parking</label><br>
+            <label class="option"><input type="radio" name="q2" value="sidewalk"> Wider sidewalks</label>
+
+            <div style="height:8px"></div>
+            <button id="quizBtn">Submit</button>
+            <p id="quizResult" class="small" style="font-weight:600;margin-top:8px"></p>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:12px">
+          <h2>Feedback & Reports</h2>
+          <p class="muted">Send a report about current road conditions. Reports are stored locally on your device.</p>
+          <form id="feedbackForm">
+            <label class="small">Name (optional)</label><br>
+            <input id="fbName" type="text" placeholder="Your name"><br><br>
+            <label class="small">Report</label><br>
+            <textarea id="fbText" rows="3" placeholder="e.g., heavy congestion near Padang Padang at 5 PM" required style="width:100%"></textarea><br><br>
+            <button type="submit">Submit Report</button>
+          </form>
+
+          <div style="height:10px"></div>
+          <strong class="small">Recent reports (local)</strong>
+          <div class="ideas-list" id="reports"></div>
+        </section>
+      </div>
+
+      <aside>
+        <div class="card">
+          <h2>Quick Tips</h2>
+          <ul>
+            <li>Travel before 7 AM or after 7 PM when possible</li>
+            <li>Use shared transport & designated parking</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>Community Ideas</h2>
+          <p class="muted small">Share ideas — stored locally.</p>
+          <input id="ideaText" placeholder="Suggest an idea..." style="width:100%"><div style="height:8px"></div>
+          <button id="addIdea">Add Idea</button>
+          <div style="height:8px"></div>
+          <div class="ideas-list" id="ideas"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>Simulator Summary</h2>
+          <div class="status">
+            <strong id="sumCond">Smooth</strong>
+            <div class="muted">Avg speed: <span id="sumSpeed">60</span> km/h • Delay: <span id="sumDelay">0</span> min • Vehicles: <span id="sumCount">6</span></div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      &copy; 2025 Uluwatu Road Traffic Project — use this demo to learn and collect ideas.
+    </footer>
+
+  </div>
+
+  <!-- admin modal -->
+  <div class="overlay" id="overlay"></div>
+  <div class="admin-modal" id="adminModal" role="dialog" aria-modal="true">
+    <h3>Admin — Feedback & Ideas (Local)</h3>
+    <div class="admin-row" style="margin-top:8px">
+      <label style="margin-right:8px">Password:</label>
+      <input id="adminPass" type="password" placeholder="Password">
+      <button id="adminUnlock">Unlock</button>
+      <button id="adminClose" class="ghost">Close</button>
+    </div>
+
+    <div id="adminContent" style="display:none;margin-top:12px">
+      <div><strong>Saved Reports</strong></div>
+      <div class="admin-list" id="adminReports"></div>
+
+      <div style="height:12px"></div>
+      <div><strong>Saved Ideas</strong></div>
+      <div class="admin-list" id="adminIdeas"></div>
+
+      <div class="admin-actions">
+        <button id="deleteAll">Delete All Feedback & Ideas</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Config
+  const ADMIN_PASSWORD = 'aronpintar2011';
+  const ADMIN_SHORTCUT = {ctrl:true, shift:true, key:'A'};
+
+  // Simulator
+  const lane = document.getElementById('lane');
+  const addBtn = document.getElementById('addBtn');
+  const reduceBtn = document.getElementById('reduceBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const touristToggle = document.getElementById('touristMode');
+  const countSpan = document.getElementById('count');
+  const condSpan = document.getElementById('cond');
+  const speedSpan = document.getElementById('speed');
+  const delaySpan = document.getElementById('delay');
+  const sumCond = document.getElementById('sumCond');
+  const sumSpeed = document.getElementById('sumSpeed');
+  const sumDelay = document.getElementById('sumDelay');
+  const sumCount = document.getElementById('sumCount');
+
+  let carCount = 6;
+  let animInterval = null;
+
+  function renderCars(){
+    if(!lane) return;
+    lane.innerHTML = '';
+    const visible = Math.min(40, Math.max(0, Math.round(carCount)));
+    const laneW = lane.clientWidth || 800;
+    for(let i=0;i<visible;i++){
+      const dot = document.createElement('div');
+      dot.className = 'car-dot' + (Math.random()>0.85? ' small':'');
+      dot.style.left = ((i/visible) * (laneW - 20)) + 'px';
+      lane.appendChild(dot);
+    }
+  }
+
+  function evaluateState(){
+    const capacity = 20;
+    const load = carCount / capacity;
+    let condition = 'Smooth';
+    if(load < 0.6) condition = 'Smooth';
+    else if(load < 1.0) condition = 'Moderate';
+    else if(load < 1.6) condition = 'Heavy';
+    else condition = 'Jammed';
+
+    const baseSpeed = 60;
+    const speed = Math.max(5, Math.round(baseSpeed * Math.max(0.12, 1 - (load * 0.7))));
+    const delay = Math.max(0, Math.round((load - 0.4) * 20));
+
+    if(countSpan) countSpan.textContent = carCount;
+    if(condSpan) condSpan.textContent = condition;
+    if(speedSpan) speedSpan.textContent = speed;
+    if(delaySpan) delaySpan.textContent = delay;
+    if(sumCond) sumCond.textContent = condition;
+    if(sumSpeed) sumSpeed.textContent = speed;
+    if(sumDelay) sumDelay.textContent = delay;
+    if(sumCount) sumCount.textContent = carCount;
+
+    if(condSpan){
+      if(condition === 'Smooth'){ condSpan.style.color = '#0b8457'; }
+      else if(condition === 'Moderate'){ condSpan.style.color = '#b77900'; }
+      else if(condition === 'Heavy'){ condSpan.style.color = '#b42a00'; }
+      else { condSpan.style.color = '#7b1b18'; }
+    }
+
+    const dots = lane ? lane.querySelectorAll('.car-dot') : [];
+    dots.forEach((d, i)=>{
+      const offset = (Date.now()/80 + i*7) % 200;
+      d.style.left = (((i/dots.length) * (lane.clientWidth - 20) + (offset/6)) % (lane.clientWidth - 20)) + 'px';
+    });
+  }
+
+  function syncManual(){ /* placeholder if future slider */ }
+  function addCars(n=3){ carCount = Math.min(200, carCount + n); syncManual(); evaluateState(); renderCars(); }
+  function reduceCars(n=3){ carCount = Math.max(0, carCount - n); syncManual(); evaluateState(); renderCars(); }
+  function resetSim(){ carCount = 6; if(touristToggle) touristToggle.checked = false; syncManual(); evaluateState(); renderCars(); }
+
+  if(addBtn) addBtn.addEventListener('click', ()=> addCars(4));
+  if(reduceBtn) reduceBtn.addEventListener('click', ()=> reduceCars(4));
+  if(resetBtn) resetBtn.addEventListener('click', ()=> resetSim());
+  if(touristToggle) touristToggle.addEventListener('change', (e)=>{
+    if(e.target.checked){ if(animInterval) clearInterval(animInterval); animInterval = setInterval(()=> addCars(Math.random()>0.65?6:3), 1800); }
+    else { if(animInterval) clearInterval(animInterval); animInterval = null; }
+  });
+
+  renderCars();
+  evaluateState();
+  setInterval(()=>{ evaluateState(); }, 400);
+
+  // Ideas (localStorage)
+  const ideaText = document.getElementById('ideaText');
+  const addIdeaBtn = document.getElementById('addIdea');
+  const ideasEl = document.getElementById('ideas');
+
+  function loadIdeas(){
+    const list = JSON.parse(localStorage.getItem('uluIdeas')||'[]');
+    if(!ideasEl) return;
+    ideasEl.innerHTML = '';
+    list.forEach(item=>{
+      const div = document.createElement('div');
+      div.className = 'idea';
+      div.textContent = item;
+      ideasEl.appendChild(div);
+    });
+  }
+  if(addIdeaBtn) addIdeaBtn.addEventListener('click', ()=>{
+    const v = (ideaText && ideaText.value.trim()) || '';
+    if(!v) return;
+    const list = JSON.parse(localStorage.getItem('uluIdeas')||'[]');
+    list.unshift(v);
+    localStorage.setItem('uluIdeas', JSON.stringify(list));
+    if(ideaText) ideaText.value = '';
+    loadIdeas();
+  });
+  loadIdeas();
+
+  // Reports (feedback)
+  const fbForm = document.getElementById('feedbackForm');
+  const reportsEl = document.getElementById('reports');
+
+  function escapeHtml(unsafe){
+    if(unsafe === null || unsafe === undefined) return '';
+    return String(unsafe).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  function loadReports(){
+    const list = JSON.parse(localStorage.getItem('uluReports')||'[]');
+    if(!reportsEl) return;
+    reportsEl.innerHTML = '';
+    list.forEach(r=>{
+      const d = document.createElement('div');
+      d.className = 'idea';
+      const name = r.name ? r.name : 'Anon';
+      d.innerHTML = `<strong>${escapeHtml(name)}</strong>
+                     <div class="muted" style="font-size:13px">${escapeHtml(r.text)}</div>
+                     <div style="font-size:11px;color:#94a3b8">${new Date(r.ts).toLocaleString()}</div>`;
+      reportsEl.appendChild(d);
+    });
+  }
+  if(fbForm) fbForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('fbName').value.trim();
+    const text = document.getElementById('fbText').value.trim();
+    if(!text) return alert('Please enter a report.');
+    const list = JSON.parse(localStorage.getItem('uluReports')||'[]');
+    list.unshift({name,text,ts:Date.now()});
+    localStorage.setItem('uluReports', JSON.stringify(list));
+    fbForm.reset();
+    loadReports();
+    alert('Report saved locally.');
+  });
+  loadReports();
+
+  // Quiz
+  const quizBtn = document.getElementById('quizBtn');
+  if(quizBtn) quizBtn.addEventListener('click', ()=>{
+    const q1 = document.querySelector('input[name="q1"]:checked');
+    const q2 = document.querySelector('input[name="q2"]:checked');
+    let score = 0;
+    if(q1 && q1.value === 'shuttle') score++;
+    if(q2 && q2.value === 'illegal') score++;
+    const res = document.getElementById('quizResult');
+    if(res) res.textContent = 'Score: ' + score + '/2';
+  });
+
+  // Admin modal
+  const overlay = document.getElementById('overlay');
+  const adminModal = document.getElementById('adminModal');
+  const adminUnlock = document.getElementById('adminUnlock');
+  const adminClose = document.getElementById('adminClose');
+  const adminPass = document.getElementById('adminPass');
+  const adminContent = document.getElementById('adminContent');
+  const adminReports = document.getElementById('adminReports');
+  const adminIdeas = document.getElementById('adminIdeas');
+  const deleteAllBtn = document.getElementById('deleteAll');
+
+  function openAdminModal(){
+    if(overlay) overlay.style.display = 'block';
+    if(adminModal) adminModal.style.display = 'block';
+    if(adminPass) adminPass.value = '';
+    if(adminContent) adminContent.style.display = 'none';
+  }
+  function closeAdminModal(){
+    if(overlay) overlay.style.display = 'none';
+    if(adminModal) adminModal.style.display = 'none';
+  }
+
+  function populateAdmin(){
+    const reports = JSON.parse(localStorage.getItem('uluReports')||'[]');
+    if(adminReports) adminReports.innerHTML = '';
+    if(reports.length === 0 && adminReports) adminReports.textContent = '(no reports)';
+    reports.forEach(r=>{
+      if(!adminReports) return;
+      const div = document.createElement('div');
+      div.style.padding = '6px';
+      div.style.borderBottom = '1px solid #f1f5f9';
+      const name = r.name ? r.name : 'Anon';
+      div.innerHTML = `<strong>${escapeHtml(name)}</strong>
+                       <div style='font-size:13px;color:#475569'>${escapeHtml(r.text)}</div>
+                       <div style='font-size:11px;color:#94a3b8'>${new Date(r.ts).toLocaleString()}</div>`;
+      adminReports.appendChild(div);
+    });
+
+    const ideas = JSON.parse(localStorage.getItem('uluIdeas')||'[]');
+    if(adminIdeas) adminIdeas.innerHTML = '';
+    if(ideas.length === 0 && adminIdeas) adminIdeas.textContent = '(no ideas)';
+    ideas.forEach(i=>{
+      if(!adminIdeas) return;
+      const div = document.createElement('div');
+      div.style.padding = '6px';
+      div.style.borderBottom = '1px solid #f1f5f9';
+      div.textContent = i;
+      adminIdeas.appendChild(div);
+    });
+  }
+
+  if(adminUnlock) adminUnlock.addEventListener('click', ()=>{
+    const val = adminPass.value || '';
+    if(val === ADMIN_PASSWORD){
+      if(adminContent) adminContent.style.display = 'block';
+      populateAdmin();
+    } else {
+      alert('Incorrect password');
+    }
+  });
+  if(adminClose) adminClose.addEventListener('click', ()=> closeAdminModal());
+  if(overlay) overlay.addEventListener('click', ()=> closeAdminModal());
+
+  if(deleteAllBtn) deleteAllBtn.addEventListener('click', ()=>{
+    if(!confirm('Delete ALL reports and ideas? This cannot be undone.')) return;
+    localStorage.removeItem('uluReports');
+    localStorage.removeItem('uluIdeas');
+    loadReports(); loadIdeas();
+    if(adminReports) adminReports.innerHTML='(no reports)';
+    if(adminIdeas) adminIdeas.innerHTML='(no ideas)';
+    alert('All local feedback and ideas deleted.');
+  });
+
+  // open admin with Ctrl+Shift+A
+  window.addEventListener('keydown', (e)=>{
+    const isShortcut = (e.key.toLowerCase() === ADMIN_SHORTCUT.key.toLowerCase()) && (!!e.ctrlKey === !!ADMIN_SHORTCUT.ctrl) && (!!e.shiftKey === !!ADMIN_SHORTCUT.shift);
+    if(isShortcut){
+      e.preventDefault();
+      openAdminModal();
+    }
+  });
+
+  // initial
+  syncManual();
+  renderCars();
+  evaluateState();
+  loadIdeas();
+  loadReports();
+
+  window.addEventListener('resize', ()=>{ renderCars(); });
+
+</script>
+</body>
+</html>
