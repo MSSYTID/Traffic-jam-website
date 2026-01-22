@@ -68,6 +68,10 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
 .admin-actions{margin-top:12px}
 .small{font-size:13px;color:var(--muted)}
 </style>
+<!-- Firebase App -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<!-- Firebase Database -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <div class="container">
@@ -147,7 +151,7 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
 
             <div style="height:8px"></div>
             <button id="quizBtn">Submit</button>
-            <p id="quizResult" class="small" style="font-weight:600;margin-top:8px"></p>
+            <p id="quizResult" class="small" style="font-weight:600;margin-top:8px">Score: 0/2</p>
           </div>
         </section>
 
@@ -169,6 +173,11 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
       </div>
 
       <aside>
+<div class="card" style="margin-top:12px">
+  <h2>Visitor Count</h2>
+  <p class="muted small">Total visitors so far:</p>
+  <strong id="visitorCount">0</strong>
+</div>
         <div class="card">
           <h2>Quick Tips</h2>
           <ul>
@@ -228,6 +237,33 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
   </div>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCuHlFuFh2xKLxVr4bZD_iSlBtn9B7jhAo",
+  authDomain: "trafficjamwebsite.firebaseapp.com",
+  databaseURL: "https://trafficjamwebsite-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "trafficjamwebsite",
+  storageBucket: "trafficjamwebsite.app",
+  messagingSenderId: "595527109401",
+  appId: "1:595527109401:web:144d48f60c74bb9e455388",
+  measurementId: "G-NBH98SC1GE"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+// Reference to visitor count in database
+const visitorRef = db.ref('visitorCount');
+
+// Increment counter safely
+visitorRef.transaction(current => {
+  return (current || 0) + 1;
+});
+// Update the HTML whenever the count changes
+visitorRef.on('value', snapshot => {
+  const val = snapshot.val() || 0;
+  const el = document.getElementById('visitorCount');
+  if(el) el.textContent = val;
+});
   // Config
   const ADMIN_PASSWORD = 'aronpintar2011';
   const ADMIN_SHORTCUT = {ctrl:true, shift:true, key:'A'};
@@ -299,7 +335,7 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
     });
   }
 
-  function syncManual(){ /* placeholder if future slider */ }
+  function syncManual(){ }
   function addCars(n=3){ carCount = Math.min(200, carCount + n); syncManual(); evaluateState(); renderCars(); }
   function reduceCars(n=3){ carCount = Math.max(0, carCount - n); syncManual(); evaluateState(); renderCars(); }
   function resetSim(){ carCount = 6; if(touristToggle) touristToggle.checked = false; syncManual(); evaluateState(); renderCars(); }
@@ -316,7 +352,7 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
   evaluateState();
   setInterval(()=>{ evaluateState(); }, 400);
 
-  // Ideas (localStorage)
+  // Ideas
   const ideaText = document.getElementById('ideaText');
   const addIdeaBtn = document.getElementById('addIdea');
   const ideasEl = document.getElementById('ideas');
@@ -343,7 +379,7 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
   });
   loadIdeas();
 
-  // Reports (feedback)
+  // Reports
   const fbForm = document.getElementById('feedbackForm');
   const reportsEl = document.getElementById('reports');
 
@@ -386,10 +422,20 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
     const q1 = document.querySelector('input[name="q1"]:checked');
     const q2 = document.querySelector('input[name="q2"]:checked');
     let score = 0;
-    if(q1 && q1.value === 'shuttle') score++;
-    if(q2 && q2.value === 'illegal') score++;
+    let feedback = '';
+
+    if(q1){
+      if(q1.value === 'shuttle'){ score++; feedback += 'Q1 correct. '; }
+      else feedback += 'Q1 incorrect. ';
+    } else feedback += 'Q1 unanswered. ';
+
+    if(q2){
+      if(q2.value === 'illegal'){ score++; feedback += 'Q2 correct.'; }
+      else feedback += 'Q2 incorrect.';
+    } else feedback += 'Q2 unanswered.';
+
     const res = document.getElementById('quizResult');
-    if(res) res.textContent = 'Score: ' + score + '/2';
+    if(res) res.textContent = `Score: ${score}/2 • ${feedback}`;
   });
 
   // Admin modal
@@ -465,7 +511,6 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
     alert('All local feedback and ideas deleted.');
   });
 
-  // open admin with Ctrl+Shift+A
   window.addEventListener('keydown', (e)=>{
     const isShortcut = (e.key.toLowerCase() === ADMIN_SHORTCUT.key.toLowerCase()) && (!!e.ctrlKey === !!ADMIN_SHORTCUT.ctrl) && (!!e.shiftKey === !!ADMIN_SHORTCUT.shift);
     if(isShortcut){
@@ -474,15 +519,12 @@ footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
     }
   });
 
-  // initial
   syncManual();
   renderCars();
   evaluateState();
   loadIdeas();
   loadReports();
-
   window.addEventListener('resize', ()=>{ renderCars(); });
-
 </script>
 </body>
 </html>
